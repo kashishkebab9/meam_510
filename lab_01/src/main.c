@@ -3,7 +3,10 @@
 */
 
 #include "MEAM_general.h"  // includes the resources included in the MEAM_general.h file
-#define DUTY_CYCLE .90 // duty cycle for toggle PWM val is in %
+#include <stdint.h>
+#define PULSE_RISE 3000
+#define PULSE_FLAT 1000
+#define PULSE_FALL 6000
 #define COMPARE_VAL 6250 // If we set the prescalar to 64, 
                          // the timer is at 250khz
                          // By dividing this clock freq by 20, we count to 
@@ -14,8 +17,8 @@ int main(void)
     _clockdivide(0); //set the clock speed to 16Mhz
     set(DDRC,6);        // Allow pin 6 to be output
 
-    // Set PSC 101  for highest pre-scalar:
-    set(TCCR3B, CS32);
+    // Set PSC 001  for fastest clock:
+    clear(TCCR3B, CS32);
     clear(TCCR3B, CS31);
     set(TCCR3B, CS30);
     // 15.625khz
@@ -34,31 +37,37 @@ int main(void)
     set(TCCR3A, WGM30);
 
     // modulate the compare value to get desired duty cycle
-    OCR3A = DUTY_CYCLE * 1023;
+    uint16_t counter_pulse = 0;
+    float duty_cycle = 0;
+    float step_rise = 1023.0 / PULSE_RISE;  // Steps for 0.5 seconds to reach 100% duty cycle
+    float step_fall = 1023.0 / (10000 - PULSE_FALL);  // Steps for 0.5 seconds to reach 100% duty cycle
+
+    OCR3A = 0;
+
+    while(1) {
+        if (counter_pulse < PULSE_RISE) {
+          // Brightness climb up
+          duty_cycle += step_rise; // Increase the duty cycle gradually
+        } 
+        else if(counter_pulse > PULSE_FALL) {
+          // Brightness descend down
+          duty_cycle -= step_fall; // Decrease the duty cycle gradually
+        } else {
+          duty_cycle = duty_cycle;
+        }
+
+        OCR3A = (uint16_t)(duty_cycle); // Set the duty cycle for the LED
+
+        _delay_us(100);  // This delay controls the overall time span for brightness change
+
+        if(counter_pulse >= 10000) {
+            counter_pulse = 0;
+            duty_cycle = 0; // Reset duty cycle when loop completes
+        } else {
+            counter_pulse += 1;
+        }
+    }
+
     
-
-    /* insert your hardware initialization here */
-    // for(;;){
-    //   if (TCNT3 > COMPARE_VAL) { // value for current count to compare 
-    //                              // to get desired speed
-    //     toggle(PORTC, 6); // toggle led
-    //     TCNT3 = 0; //  set to 0 to reset the counter
-    //   }
-
-    //     /* insert your main loop code here */
-    //     // set_led(TOGGLE);	// switch the led state
-    //     // set(PORTB, 7); // turn on pin 7 of port b to HIGH
-    //     // _delay_ms(1000 * DUTY_CYCLE);		// This is for long the LED is ON 
-    //     //                                 // Therefore, we need to keep it on 
-    //     //                                 // For the frequency (in this case 1Hz) 
-    //     //                                 // times the duty cycle.
-
-    //     // clear(PORTB, 7); // turn off pin 7 of port b to LOW
-    //     // _delay_ms(1000 * (1 - DUTY_CYCLE));    // This is for how long the LED 
-    //     //                                        // is OFF. Therefore, we need to
-    //     //                                        // keep it off. For the remainder
-    //     //                                        // of the frequency(1-DUTY_CYCLE) since 
-    //     //                                        freq is 1hz
-    // }
     return 0;   /* never reached */
 }
