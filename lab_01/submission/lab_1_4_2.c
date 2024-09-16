@@ -37,13 +37,11 @@ void one_instance_breath_rise(int16_t pulse_rise, float max_val) {
 
 }
 
-// start at starting_duty_cycle and go to zero within pulse_fall time
-void one_instance_breath_fall(float pulse_fall, float starting_duty_cycle) {
-    OCR3A = (uint16_t)(starting_duty_cycle * 1023.0); // Set the duty cycle for the LED
+void one_instance_breath_fall(int16_t pulse_fall) {
 
     uint16_t counter_pulse = 0;
-    float duty_cycle = starting_duty_cycle *1023.0;
-    float step_fall = (starting_duty_cycle *1023.0) / pulse_fall;  // Steps for 0.5 seconds to reach 100% duty cycle
+    float duty_cycle = 0;
+    float step_fall = 1023.0 / pulse_fall;  // Steps for 0.5 seconds to reach 100% duty cycle
 
     for (uint16_t i = 0; i < pulse_fall; i++) {
       if(counter_pulse < pulse_fall) {
@@ -56,6 +54,7 @@ void one_instance_breath_fall(float pulse_fall, float starting_duty_cycle) {
       _delay_us(100);  // This delay controls the overall time span for brightness change
 
       if(counter_pulse >= pulse_fall) {
+        OCR3A = 0; // Set the duty cycle for the LED
         return;
       } else {
         counter_pulse += 1;
@@ -68,7 +67,7 @@ int main(void)
     _clockdivide(0); //set the clock speed to 16Mhz
     set(DDRC,6);        // Allow pin 6 to be output
 
-    // Set PSC 001  for // fastest clock:
+    // Set PSC 001  for fastest clock:
     clear(TCCR3B, CS32);
     clear(TCCR3B, CS31);
     set(TCCR3B, CS30);
@@ -95,23 +94,20 @@ int main(void)
 
     OCR3A = 0;
 
-    float intensity = 1.00;
     while(1) {
-      for (uint8_t i = 0; i < 21; i++) {
-        float int_val = intensity - (i*.05);
-        one_instance_breath_rise(1000, 1.00 * int_val);
-        one_instance_breath_fall(4000, 1.00 * int_val);
-        one_instance_breath_rise(1000, .5 * int_val);
-        one_instance_breath_fall(4000, .5 * int_val);
-        _delay_ms(2000);
-
-        // one_instance_breath_fall(2000.0, int_val);
-        // one_instance_breath_rise(2000.0, int_val);
-      }
+      one_instance_breath_rise(1000, 1.00);
+      one_instance_breath_fall(4000);
+      one_instance_breath_rise(1000, .5);
+      one_instance_breath_fall(4000);
+      _delay_ms(2000);
+      one_instance_breath_rise(1000, 1.00);
+      one_instance_breath_fall(4000);
+      one_instance_breath_rise(1000, .5);
+      one_instance_breath_fall(4000);
+      _delay_ms(2000);
 
     }
 
     
     return 0;   /* never reached */
 }
-
