@@ -1,0 +1,38 @@
+
+/* Name: main.c
+ * Author: Kashish Garg  
+*/
+
+#include "MEAM_general.h"  // includes the resources included in the MEAM_general.h file
+#include <stdint.h>
+#include "m_usb.h"
+
+#define PULSE_RISE 3000
+#define PULSE_FLAT 1000
+#define PULSE_FALL 6000
+#define COMPARE_VAL 6250 // If we set the prescalar to 64, 
+                         // the timer is at 250khz
+                         // By dividing this clock freq by 20, we count to 
+                         // this compare_val
+int main(void)
+{
+    _clockdivide(0); //set the clock speed to 16Mhz
+    clear(DDRC,6);        // Allow pin 6 to be output
+    set(DDRB,7);        // Allow pin 6 to be output
+    set(PORTC, 6);
+    // set_led(ON);
+
+    while(1) {
+
+      if (bit_is_clear(PINC, 6)) {
+        set(PORTB,7);
+        m_usb_tx_string("ON");
+      }else {
+        clear(PORTB,7);
+        m_usb_tx_string("OFF");
+      }
+    }
+
+    return 0;   /* never reached */
+}
+

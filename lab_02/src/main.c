@@ -1,0 +1,128 @@
+/* Name: main.c
+ * Author: Kashish Garg  
+*/
+
+#include "MEAM_general.h"  // includes the resources included in the MEAM_general.h file
+#include <stdint.h>
+#include "m_usb.h"
+
+#define WINDOW_SIZE 5
+#define PULSE_RISE 3000
+#define PULSE_FLAT 1000
+#define PULSE_FALL 6000
+#define COMPARE_VAL 6250 // If we set the prescalar to 64, 
+                         // the timer is at 250khz
+                         // By dividing this clock freq by 20, we count to 
+                         // this compare_val
+// Function to compute the mean of the values in the window
+
+int main(void)
+{
+
+    m_usb_init();
+    _clockdivide(0); 
+
+    clear(DDRC,7); // Set input capture for input        
+    clear(PORTC, 7); // Set pull up resisotr
+
+    set(DDRC,6);        // Allow pin 6 to be output
+    set(DDRB,7);        // Allow pin 6 to be output
+
+
+    set(TIFR3, ICF3);
+
+    // Set PSC 010  for // fastest clock:
+    set(TCCR3B, CS32);
+    clear(TCCR3B, CS31);
+    set(TCCR3B, CS30);
+    // 15.625khz
+    clear(TCCR3B, ICES3);
+
+
+    uint8_t pressed = 0;
+    int last_val = 0;
+    set(PORTC,6);
+
+    set(PORTB,7);
+
+    while(1) {
+
+      int diff ;
+
+      while(!(TIFR3 & (1 << ICF3))) {
+      }
+      int time_stamp_1 = ICR3;
+      set(TIFR3, ICF3);
+
+      while(!(TIFR3 & (1 << ICF3))) {
+      }
+      int time_stamp_2 = ICR3;
+      set(TIFR3, ICF3);
+
+      if (time_stamp_2 > time_stamp_1) {
+        diff = time_stamp_2-time_stamp_1;
+      } else if(time_stamp_1 > time_stamp_2) {
+        diff = time_stamp_2 + (65535 - time_stamp_1);
+        // m_usb_tx_string("OVERFLOW! \n");
+
+      }
+
+      // if (time_stamp > last_val * 1.75) {
+      //   last_val = ICR3;
+      //   return;
+      // }
+
+      if (diff >20 ) {
+        m_usb_tx_uint(diff);
+        m_usb_tx_string("\n");
+
+       // m_usb_tx_string("\n");
+        
+
+        if (diff >22 && diff <= 25) {
+          set(PORTC,6);
+          clear(PORTB,7);
+        
+
+        } else if (diff > 620 && diff < 630) {
+          set(PORTB,7);
+          clear(PORTC,6);
+
+        } else {
+          clear(PORTB,7);
+          clear(PORTC,6);
+          m_usb_tx_string("NEITHER!\n");
+        }
+      }
+      // if (bit_is_set(PINF, 5)) {
+      //     set(PORTB,7); // turn on digital out to go into input capture
+      //     set(TIFR3, ICF3);
+      //     m_usb_tx_uint(ICR3-last_val);
+      //     m_usb_tx_string("\n");
+      //     last_val = ICR3;
+
+
+      // } else {
+
+      //     clear(PORTB,7);
+      // }
+
+
+    }
+    //while(1) {
+
+
+      // while(!(TIFR3 & (1 << ICF3))) {
+      // }
+
+      // set(TIFR3, ICF3);
+      // set(PORTB,7);
+      // m_usb_tx_uint(ICR3-last_val);
+      // m_usb_tx_string(": ON\n");
+      // last_val = ICR3;
+
+    //}
+
+    return 0;   /* never reached */
+}
+

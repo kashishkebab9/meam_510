@@ -1,0 +1,52 @@
+/* Name: main.c
+ * Author: Kashish Garg  
+*/
+
+#include "MEAM_general.h"  // includes the resources included in the MEAM_general.h file
+#include <stdint.h>
+#include "m_usb.h"
+
+#define PULSE_RISE 3000
+#define PULSE_FLAT 1000
+#define PULSE_FALL 6000
+#define COMPARE_VAL 6250 // If we set the prescalar to 64, 
+                         // the timer is at 250khz
+                         // By dividing this clock freq by 20, we count to 
+                         // this compare_val
+int main(void)
+{
+    m_usb_init();
+    _clockdivide(0); 
+    clear(DDRC,7);        
+    set(DDRB,7);        
+                        
+    set(PORTC, 7);
+    set(DDRC,6);        // Allow pin 6 to be output
+    set(TIFR3, ICF3);
+
+    // Set PSC 001  for // fastest clock:
+    set(TCCR3B, CS32);
+    clear(TCCR3B, CS31);
+    set(TCCR3B, CS30);
+    // 15.625khz
+
+
+    uint8_t pressed = 0;
+    int last_val = 0;
+    while(1) {
+
+
+      while(!(TIFR3 & (1 << ICF3))) {
+      }
+
+      set(TIFR3, ICF3);
+      set(PORTB,7);
+      m_usb_tx_uint(ICR3-last_val);
+      m_usb_tx_string(": ON\n");
+      last_val = ICR3;
+
+    }
+
+    return 0;   /* never reached */
+}
+

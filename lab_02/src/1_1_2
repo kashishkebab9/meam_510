@@ -1,0 +1,68 @@
+/* Name: main.c
+ * Author: Kashish Garg  
+*/
+
+#include "MEAM_general.h"  // includes the resources included in the MEAM_general.h file
+#include <stdint.h>
+#include "m_usb.h"
+
+#define PULSE_RISE 3000
+#define PULSE_FLAT 1000
+#define PULSE_FALL 6000
+#define COMPARE_VAL 6250 // If we set the prescalar to 64, 
+                         // the timer is at 250khz
+                         // By dividing this clock freq by 20, we count to 
+                         // this compare_val
+int main(void)
+{
+    m_usb_init();
+    _clockdivide(0); //set the clock speed to 16Mhz
+    clear(DDRC,7);        // Allow pin 6 to be output
+    set(DDRB,7);        // Allow pin 6 to be output
+    set(PORTC, 7);
+    // set_led(ON);
+    set(DDRC,6);        // Allow pin 6 to be output
+
+    // Set PSC 001  for // fastest clock:
+    clear(TCCR3B, CS32);
+    clear(TCCR3B, CS31);
+    set(TCCR3B, CS30);
+    // 15.625khz
+
+    // Set timer 3 to compare for channel a. Pin C6 is on Channel A, timer 3
+    // We want to set this to 1, 0  so that we can use the duty cycle to 
+    // ration on and off times
+    set(TCCR3A, COM3A1);  
+    clear(TCCR3A, COM3A0);  
+
+    // set the waveform generator to mode 7 so we can use the 1023 val and 
+    // the OCR3A val
+    clear(TCCR3B, WGM33);
+    set(TCCR3B, WGM32);
+    set(TCCR3A, WGM31);
+    set(TCCR3A, WGM30);
+
+    uint8_t pressed = 0;
+    while(1) {
+
+      if (bit_is_clear(PINC, 7)) {
+        if (!pressed) {
+          set(PORTB,7);
+          m_usb_tx_uint(TCNT3);
+          m_usb_tx_string(": ON\n");
+          pressed = 1;
+        }
+      }else {
+        if (pressed) {
+          m_usb_tx_uint(TCNT3);
+          m_usb_tx_string(": OFF\n");
+          pressed = 1;
+        }
+        clear(PORTB,7);
+        pressed = 0;
+      }
+    }
+
+    return 0;   /* never reached */
+}
+
