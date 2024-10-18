@@ -44,33 +44,6 @@ void setupADC(uint8_t pin) {
   set(ADCSRA, ADEN);
 }
 
-void setupADC_hardcode(){
-  // Setup PF0 and PF1 for ADC
-  clear(DDRF, 0);         
-  clear(PORTF, 0); 
-                   
-  clear(DDRF, 1);         
-  clear(PORTF, 1); 
-  clear(ADMUX, REFS1);
-  set(ADMUX, REFS0);
-
-  // clear the following to set the mux pins
-  clear(ADCSRA, ADEN);
-
-  // ADC Prescalar
-  set(ADCSRA, ADPS2);
-  set(ADCSRA, ADPS1);
-  set(ADCSRA, ADPS0);
-
-  // Disable Digital Input
-  set(DIDR0, ADC0D);
-  set(DIDR0, ADC1D);
-  
-
-  // re-set this after config
-  set(ADCSRA, ADEN);
-}
-
 uint16_t readADC(uint8_t channel) {
   // 
   clear(ADMUX, MUX5);
