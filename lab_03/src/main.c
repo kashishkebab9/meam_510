@@ -45,7 +45,7 @@ void setupADC(uint8_t pin) {
 }
 
 uint16_t readADC(uint8_t channel) {
-  // 
+  // Clear the pins
   clear(ADMUX, MUX5);
   clear(ADMUX, MUX2);
   clear(ADMUX, MUX1);
@@ -64,6 +64,31 @@ uint16_t readADC(uint8_t channel) {
 
 int main(void)
 {
+    //TIMER SETUP
+    _clockdivide(0); //set the clock speed to 16Mhz
+    set(DDRC,6);        // Allow pin 6 to be output
+
+    // Set PSC 001  for // fastest clock:
+    set(TCCR3B, CS32);
+    clear(TCCR3B, CS31);
+    set(TCCR3B, CS30);
+    // 15.625khz
+
+    // Set timer 3 to compare for channel a. Pin C6 is on Channel A, timer 3
+    // We want to set this to 1, 0  so that we can use the duty cycle to 
+    // ration on and off times
+    set(TCCR3A, COM3A1);  
+    clear(TCCR3A, COM3A0);  
+
+    // set the waveform generator to mode 7 so we can use the 1023 val and 
+    // the OCR3A val
+    clear(TCCR3B, WGM33);
+    set(TCCR3B, WGM32);
+    clear(TCCR3A, WGM31);
+    set(TCCR3A, WGM30);
+    OCR3A = 8;
+    //TIMER SETUP
+
 
     m_usb_init();
     // setupADC_hardcode();
@@ -73,6 +98,7 @@ int main(void)
 
 
     while(1) {
+
       uint16_t val_x = readADC(0);
       m_usb_tx_string("V_RX: ");
       m_usb_tx_uint(val_x);
